@@ -1,0 +1,92 @@
+---
+title: "Bioinformatics"
+author: "Alexandra Mendoza"
+date: "2025-11-14"
+output: html_document
+---
+
+## Load SparseDOSSA2 package
+
+```{r}
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+install.packages("devtools")
+devtools::install_github("biobakery/SparseDOSSA2")
+library(SparseDOSSA2)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+```
+
+## Set up parameters for ASV table: 40 subjects total (20 male, 20 female), 2 body sites (gut and oral), 200 ASV Features.
+
+```{r}
+set.seed(123)
+
+n_male   <- 20
+n_female <- 20
+n_subj   <- n_male + n_female
+n_site   <- 2                       
+n_sample <- n_subj * n_site
+n_feature <- 200                    
+
+```
+
+## Generate and save sample ASV table and metadata table
+
+```{r}
+# subject IDs 1..n_subj, each with 2 samples
+subject_id <- rep(1:n_subj, each = n_site)
+
+# gender at subject level: 1 = male, 0 = female
+gender_subj <- c(rep(1, n_male), rep(0, n_female))
+
+# expand to sample level (each subject has 2 samples)
+gender_vec <- rep(gender_subj, each = n_site)   # length = n_sample
+
+# this will be the metadata we spike on (single column: gender)
+metadata_matrix <- matrix(gender_vec, ncol = 1)
+colnames(metadata_matrix) <- "gender"
+
+set.seed(42)
+
+sim <- SparseDOSSA2::SparseDOSSA2(
+  template                   = "Stool",
+  n_sample                   = n_sample,
+  new_features               = TRUE,
+  n_feature                  = n_feature,
+  spike_metadata             = "both",          # spike associations with metadata
+  metadata_matrix            = metadata_matrix, 
+  metadata_effect_size       = 2.5,             
+  perc_feature_spiked_metadata = 0.2,           # 20% of features associated with gender
+  median_read_depth          = 50000,
+  verbose                    = TRUE
+)
+
+# ASV counts (features x samples)
+asv_counts <- sim$simulated_data
+dim(asv_counts)
+head(asv_counts[, 1:4])
+
+# assign gut/oral labels within each subject
+site <- rep(c("gut", "oral"), times = n_subj)
+
+sample_metadata <- data.frame(
+  sample_id  = colnames(asv_counts),
+  subject_id = subject_id,
+  gender        = factor(ifelse(gender_vec == 1, "male", "female")),
+  site       = factor(site, levels = c("gut", "oral"))
+)
+
+head(sample_metadata)
+
+write.table(asv_counts,
+            file = "SparseDOSSA_ASV_table.tsv",
+            sep = "\t", quote = FALSE, col.names = NA)
+
+write.table(sample_metadata,
+            file = "SparseDOSSA_sample_metadata.tsv",
+            sep = "\t", quote = FALSE, row.names = FALSE)
+
+```
+
