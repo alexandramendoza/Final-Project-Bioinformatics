@@ -12,4 +12,4 @@
 -Tool/model & version: Chat GPT
 -What I asked for: Asked for sample code for a Rain Forest model
 -What I changed before committing: Added code to upload files, modified names of variables to distinguish between models
--How I verified correctness: used in class notes and in class Colab notebook as reference. 
+-How I verified correctness: used in class notes and in class Colab notebook (Module10_Classifiers_Tutorial.ipynb) as reference. 
